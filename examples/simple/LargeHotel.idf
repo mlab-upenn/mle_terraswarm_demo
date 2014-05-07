@@ -105,8 +105,8 @@
     ,                        !- Name
     1,                       !- Begin Month
     1,                       !- Begin Day of Month
-    12,                      !- End Month
-    31,                      !- End Day of Month
+    1,                      !- End Month
+    2,                      !- End Day of Month
     Sunday,                  !- Day of Week for Start Day
     No,                      !- Use Weather File Holidays and Special Days
     No,                      !- Use Weather File Daylight Saving Period
@@ -12386,8 +12386,6 @@
 !
 !  Output:Meter,Water Heater:WaterSystems:Gas,HOURLY;
 
-  Output:Variable,Whole Building,Facility Total Electric Demand Power,TimeStep;
-
 !  Output:Variable,*,Site Outdoor Air Drybulb Temperature,HOURLY;
 !
 !  Output:Variable,*,Site Outdoor Air Humidity Ratio,HOURLY;
@@ -12651,3 +12649,10 @@
 !    ,                        !- Nuclear High Level Emission Factor Schedule Name
 !    0;                       !- Nuclear Low Level Emission Factor {m3/MJ}
 !
+
+
+! *** External Interface ***
+  ExternalInterface,           !- Object to activate the external interface
+    PtolemyServer;              !- Name of external interface
+
+  Output:Variable,Whole Building,Facility Total Electric Demand Power,TimeStep;  ! Electricity demand of the entire plant
