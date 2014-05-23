@@ -264,7 +264,7 @@
     -6.00,                   !- Time Zone {hr}
     190;                     !- Elevation {m}
 
- ! CHICAGO_IL_USA Annual Heating 99.6%, MaxDB=-20.6°C
+ ! CHICAGO_IL_USA Annual Heating 99.6%, MaxDB=-20.6Â°C
 
   SizingPeriod:DesignDay,
     CHICAGO Ann Htg 99.6% Condns DB,  !- Name
@@ -294,7 +294,7 @@
     ,                        !- ASHRAE Clear Sky Optical Depth for Diffuse Irradiance (taud) {dimensionless}
     0.00;                    !- Sky Clearness
 
- ! CHICAGO_IL_USA Annual Cooling (WB=>MDB) .4%, MDB=31.2°C WB=25.5°C
+ ! CHICAGO_IL_USA Annual Cooling (WB=>MDB) .4%, MDB=31.2Â°C WB=25.5Â°C
 
   SizingPeriod:DesignDay,
     CHICAGO Ann Clg .4% Condns WB=>MDB,  !- Name
@@ -12650,6 +12650,69 @@
 !    0;                       !- Nuclear Low Level Emission Factor {m3/MJ}
 !
 
+
+! *** EMS code to obtain current date and time from E+ ***
+! Reference: https://groups.google.com/d/msg/bcvtb/g5j9lDPDOSs/LaZCVJiEkjUJ
+! Modified by Truong X. Nghiem
+
+EnergyManagementSystem:GlobalVariable,
+    currentYear;           !- Year: 1900â€“2100
+
+EnergyManagementSystem:GlobalVariable,
+    currentMonth;          !- Month: 1-12
+
+EnergyManagementSystem:GlobalVariable,
+    currentDayOfMonth;     !- Day of month (1-31)
+
+EnergyManagementSystem:GlobalVariable,
+    currentDayOfWeek;      !- Day of week (1=Sun, 2=Mon,..., 7=Sat)
+
+EnergyManagementSystem:GlobalVariable,
+    currentTimeOfDay;      !- Current time of day: 0.0 - 24.0 (fractional hours)
+                           !- Another option is using Hour and Minute separately
+
+EnergyManagementSystem:Program,
+    GetTimelag,            !- Name
+    SET currentYear = Year,
+    SET currentMonth = Month,
+    SET currentDayOfMonth = DayOfMonth,
+    SET currentDayOfWeek = DayOfWeek,
+    SET currentTimeOfDay = CurrentTime;
+
+EnergyManagementSystem:ProgramCallingManager,
+    GetTimelag_Manager,  !- Name
+    AfterPredictorAfterHVACManagers,  !- EnergyPlus Model Calling Point
+    GetTimelag ;        !- Program Name 1
+
+EnergyManagementSystem:OutputVariable,
+    currentYear,  !- Name
+    currentYear,     !- EMS Variable Name
+    Averaged,                !- Type of Data in Variable
+    ZoneTimeStep;            !- Update Frequency
+
+EnergyManagementSystem:OutputVariable,
+    currentMonth,  !- Name
+    currentMonth,     !- EMS Variable Name
+    Averaged,                !- Type of Data in Variable
+    ZoneTimeStep;            !- Update Frequency
+
+EnergyManagementSystem:OutputVariable,
+    currentDayOfMonth,  !- Name
+    currentDayOfMonth,     !- EMS Variable Name
+    Averaged,                !- Type of Data in Variable
+    ZoneTimeStep;            !- Update Frequency
+
+EnergyManagementSystem:OutputVariable,
+    currentDayOfWeek,  !- Name
+    currentDayOfWeek,     !- EMS Variable Name
+    Averaged,                !- Type of Data in Variable
+    ZoneTimeStep;            !- Update Frequency
+
+EnergyManagementSystem:OutputVariable,
+    currentTimeOfDay,  !- Name
+    currentTimeOfDay,     !- EMS Variable Name
+    Averaged,                !- Type of Data in Variable
+    ZoneTimeStep;            !- Update Frequency
 
 ! *** External Interface ***
   ExternalInterface,           !- Object to activate the external interface

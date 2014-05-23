@@ -32,7 +32,7 @@ kStep = 1;  % current simulation step
 MAXSTEPS = 1*24*EPTimeStep;  % max simulation time (first number is in days)
 
 % logdata stores the electricity demand of the entire plant
-logdata = zeros(MAXSTEPS, 1);
+logdata = zeros(MAXSTEPS, 6);
 
 while kStep <= MAXSTEPS
     disp('Tick');
@@ -48,6 +48,7 @@ while kStep <= MAXSTEPS
     if flag ~= 0, break; end
         
     % Write to inputs of E+
+    % Because we don't input anything to E+, the message is empty
     ep.write(mlepEncodeRealData(VERNUMBER, 0, (kStep-1)*deltaT, []));    
 
     % Save to logdata
@@ -68,7 +69,10 @@ if kStep < MAXSTEPS
 end
 
 % Plot results
-plot([0:(kStep-1)]'*deltaT/3600, logdata);
+fprintf('The current date is %d-%d-%d, which is day %d (1=Sun,...,7=Sat).\n',...
+    logdata(1, 3), logdata(1, 2), logdata(1, 1), logdata(1, 4));
+logdata(logdata(:,5) >= 24, 5) = 0;
+plot(logdata(:, 5), logdata(:, 6));
 title('Electricity demand of entire plant');
 xlabel('Time (hour)');
 ylabel('Demand [W]');
