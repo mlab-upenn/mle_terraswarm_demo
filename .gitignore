@@ -1,1 +1,9 @@
 Output/
+*.idd
+*.audit
+*.bnd
+eplusout.*
+Energy+.ini
+in.*
+socket.cfg
+utilSocket.log

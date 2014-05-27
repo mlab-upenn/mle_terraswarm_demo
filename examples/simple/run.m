@@ -1,3 +1,5 @@
+% Run simple co-simulation with EnergyPlus locally (no S2Sim).
+%
 % (C) 2014 by Truong X. Nghiem (nghiem@seas.upenn.edu)
 %
 % CHANGES:
