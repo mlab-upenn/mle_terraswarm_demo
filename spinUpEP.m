@@ -52,7 +52,7 @@ assert(EP.isRunning, 'EP-cosim object must be already running (use method start)
 assert(0 < TS && TS <= 1, 'Timestep TS must be between (0, 1].');
 
 assert(rem(M, 1) == 0 && 1 <= M && M <= 12, 'Month M must be a whole number between 1 and 12.');
-assert(rem(D, 1) == 0 && 1 <= D && D <= maxDays(M, true), 'Day of month D must be a whole number and valid for the given month.');
+assert(rem(D, 1) == 0 && 1 <= D && D <= maxDaysInMonth(M, true), 'Day of month D must be a whole number and valid for the given month.');
 assert(0 <= TOD && TOD < 24, 'Time of day TOD must be between 0 and 24.');
 
 hasFB = nargin > 5 && ~isempty(FB);

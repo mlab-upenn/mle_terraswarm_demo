@@ -11,7 +11,7 @@ tod = tod + ts;
 if tod >= 24
     tod = tod - 24;
     d = d + 1;
-    maxd = maxDays(m, leapyear);
+    maxd = maxDaysInMonth(m, leapyear);
     if d > maxd
         d = d - maxd;
         m = m + 1;
@@ -22,21 +22,4 @@ if tod >= 24
     end
 end
 
-end
-
-function md = maxDays(m, leapyear)
-% return max number of days for a given month
-% No error checking is carried out
-switch m
-    case {1, 3, 5, 7, 8, 10, 12}
-        md = 31;
-    case 2
-        if leapyear
-            md = 29;
-        else
-            md = 28;
-        end
-    otherwise
-        md = 30;
-end
 end

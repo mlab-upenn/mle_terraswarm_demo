@@ -131,6 +131,9 @@ fprintf('Current server time: %d, time step: %d, number of clients: %d, server m
 % time step has already been read. We must write to E+ in order to advance
 % in time.
 
+instants = [];
+prices = [];
+
 kStep = 1;  % current simulation step
 MAXSTEPS = 2; %1*EPTimeStep;  % max simulation time, in steps
 
@@ -180,6 +183,9 @@ while kStep <= MAXSTEPS
         end
         
         rcvData = rcvMsg.Data;
+        
+        instants(end+1) = double(rcvData.TimeBegin);
+        prices(end+1) = double(rcvData.Prices(1));
         
         % Extract the current server time
         [S2M, S2D, S2TOD, S2Y] = epochTimeExtract(double(rcvData.TimeBegin));
