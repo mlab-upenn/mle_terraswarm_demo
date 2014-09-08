@@ -45,6 +45,7 @@ fprintf('S2Sim Current Time is: %d, which is %s\n',...
 ep = mlepProcess;
 ep.arguments = {'LargeHotel', 'USA_IL_Chicago-OHare.Intl.AP.725300_TMY3'};
 ep.acceptTimeout = 20000;
+ep.workDir = 'hotel';
 
 VERNUMBER = 2;  % version number of communication protocol (2 for E+ 6.0.0)
 
@@ -59,6 +60,8 @@ if status ~= 0
 end
 
 disp('Started and connected to E+.');
+
+pause(4);
 
 
 %% Connect to S2Sim
@@ -86,10 +89,14 @@ fprintf('Current server time: %d, time step: %d, number of clients: %d, server m
 % different time scale.
 
 kStep = 1;  % current simulation step
-MAXSTEPS = 7*24*EPTimeStep;  % max simulation time, in steps
+MAXSTEPS = 1*24*EPTimeStep;  % max simulation time, in steps
+timeScale = 2;  % number of S2Sim time steps before we advance one step
 
 % logdata stores the electricity demand of the entire plant
 logdata = zeros(MAXSTEPS, 6);
+
+instants = [];
+prices = [];
 
 TimeStep = 1/EPTimeStep;  % time step in hours
 
@@ -111,7 +118,38 @@ while kStep <= MAXSTEPS
     
     % Write to inputs of E+
     % Because we don't input anything to E+, the message is empty
-    ep.write(mlepEncodeRealData(VERNUMBER, 0, eptime, []));    
+    ep.write(mlepEncodeRealData(VERNUMBER, 0, eptime, []));
+    
+    % Now that we have the power of the building, use it for S2Sim
+    % co-simulation
+    curDemand = outputs(6);
+    
+    % Co-simulation with S2Sim until the next step
+    s2simStep = 0;
+    while s2simStep < timeScale
+        % Wait until we receive a SetPrice message
+        [success, rcvMsg, seq] = getMsgFromS2Sim(s2sim.socket, 'SetPrice');
+        if success < 0
+            disconnectFromS2Sim(s2sim.socket);
+            ep.stop;
+            error('We have been waiting for a while but did not receive the SetPrice message.');
+        elseif success > 0
+            disconnectFromS2Sim(s2sim.socket);
+            ep.stop;
+            error('Error while receiving messages: %s', rcvMsg);
+        end
+        
+        rcvData = rcvMsg.Data;
+        
+        instants(end+1) = double(rcvData.TimeBegin);
+        prices(end+1) = double(rcvData.Prices(1));
+        
+        % Respond with my demand
+        seq = sendDemandToS2Sim( s2sim.socket, s2sim.id, seq, curDemand );
+        
+        s2simStep = s2simStep + 1;
+    end
+    
     
     kStep = kStep + 1;
 end
@@ -133,7 +171,14 @@ end
 
 %% Plot results
 logdata(logdata(:,4) >= 24, 4) = 0;
+figure;
 plot(logdata(1, 4) + (0:(size(logdata,1)-1))/EPTimeStep, logdata(:, 6)/1000);
 title('Electricity demand of entire plant');
 xlabel('Time (hour)');
 ylabel('Demand [kW]');
+
+figure;
+plot(prices);
+title('Electricity Price');
+xlabel('Time');
+ylabel('Price');
