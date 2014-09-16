@@ -23,11 +23,11 @@ deltaT = (60/EPTimeStep)*60;  % time step, in seconds
 %% EnergyPlus model and DR configuration
 % The settings for DR strategy
 % The DR rule has two levels of curtailment:
-% - Level 0: triggered when price signal is > 0, which will increase the
+% - Level 0: triggered when price is > THRESHOLD0, which will increase the
 %   cooling setpoint by DCOOLSP0 (Celsius), the SAT by DSATSP0 (Celsius),
 %   and reduce the lighting level by DLIGHT0 < 0 (0-1, which is \% of
 %   full lighting power).
-% - Level 1: triggered when price signal is > THRESHOLD1 >= 0, which will
+% - Level 1: triggered when price is > THRESHOLD1 >= 0, which will
 %   increase the cooling setpoint by DCOOLSP1 (Celsius), the SAT by DSATSP1
 %   (Celsius), and reduce the lighting level by DLIGHT1 < 0 (0-1, which is
 %   \% of full lighting power).
@@ -37,10 +37,11 @@ deltaT = (60/EPTimeStep)*60;  % time step, in seconds
 % limit. If these limits are set to inf or very large values, the limits
 % are effectively disabled.
 DRparams = struct(...
+    'THRESHOLD0', 180,...
     'DCOOLSP0', 1, ...
     'DSATSP0', 0,...
     'DLIGHT0', -0.1,...
-    'THRESHOLD1', 1,...
+    'THRESHOLD1', 250,...
     'DCOOLSP1', 2, ...
     'DSATSP1', 0.5,...
     'DLIGHT1', -0.3,...
@@ -48,28 +49,6 @@ DRparams = struct(...
     'SATRATELIM', inf...
     );
 
-% There are three ways to specify the price signal (values >= 0)
-% 1) Use the SPSchedule below, to set the price based on day type and time
-%    of day.
-% 2) Use a vector of prices for each time step. The vector's length is
-%    EPTimeStep * 24 * <number of days of simulation>. No size checking is
-%    performed, so make sure the vector contains enough elements.
-% 3) Use a function handle:
-%       p = PriceSignal(TOD, M, D, DOW, HOL)
-%    where TOD is the 24-hour time of day (value in [0, 24)), M is the
-%    month (1-12), D is the day of month (1-31), DOW is the day of week
-%    (1:Sunday, 2:Monday,..., 7:Saturday), HOL is a number which is 0 if
-%    today is not a holiday and >0 if today is a holiday. The function must
-%    return a price value for the current time.
-PriceSignal = SPSchedule(...
-    'Weekdays',...
-    10,0,...
-    11,0.1,...
-    13,0.2,...
-    17,0.5,...
-    24,0,...
-    'AllOtherDays',...
-    24,0);
 
 
 %% Configure the DR control strategies
@@ -205,8 +184,8 @@ fprintf('Current server time: %d, time step: %d, number of clients: %d, server m
 % different time scale.
 
 kStep = 1;  % current simulation step
-MAXSTEPS = 2*24*EPTimeStep;  % max simulation time, in steps
-timeScale = 2;  % number of S2Sim time steps before we advance one step
+MAXSTEPS = 3*24*EPTimeStep;  % max simulation time, in steps
+timeScale = 10;  % number of S2Sim time steps before we advance one step
 
 % logdata stores the electricity demand of the entire plant
 %logdata = zeros(MAXSTEPS, 6);
@@ -274,19 +253,19 @@ curPrice = double(rcvData.Prices(1));
 instants(end+1) = double(rcvData.TimeBegin);
 prices(end+1) = curPrice;
 
+hWaitBar = waitbar(0, 'Simulating the building with S2Sim...');
+
 while kStep <= MAXSTEPS
-    disp('Tick');
-    
-    % Calculate control inputs
-    curRelPrice = (curPrice - 150) / 350;
+    % disp('Tick');
+    waitbar(kStep / MAXSTEPS);
     
     % Adjust the setpoints if DR is triggered
-    if curRelPrice > DRparams.THRESHOLD1
+    if curPrice > DRparams.THRESHOLD1
         % Activate level 1
         dCLGSETP = min(dCLGSETP+DRparams.COOLRATELIM, DRparams.DCOOLSP1);
         dSAT = min(dSAT+DRparams.SATRATELIM, DRparams.DSATSP1);
         dLIGHT = DRparams.DLIGHT1;
-    elseif curRelPrice > 0
+    elseif curPrice > DRparams.THRESHOLD0
         % Activate level 0
         dCLGSETP = min(dCLGSETP+DRparams.COOLRATELIM, DRparams.DCOOLSP0);
         dSAT = min(dSAT+DRparams.SATRATELIM, DRparams.DSATSP0);
@@ -375,11 +354,12 @@ while kStep <= MAXSTEPS
         s2simStep = s2simStep + 1;
     end
     
-    
     kStep = kStep + 1;
 end
 
 %% Finalization, quit
+
+close(hWaitBar);
 
 %Stop EnergyPlus
 ep.stop;
@@ -395,15 +375,38 @@ if kStep < MAXSTEPS
 end
 
 %% Plot results
-logdata(logdata(:,4) >= 24, 4) = 0;
-figure;
-plot(logdata(1, 4) + (0:(size(logdata,1)-1))/EPTimeStep, logdata(:, 6)/1000);
-title('Electricity demand of entire plant');
-xlabel('Time (hour)');
-ylabel('Demand [kW]');
+
+% Wait a few seconds for E+ to finish
+pause(3);
+
+cd(IDFDir);
+OutputFile = 'Output/LargeOffice.csv';
+
+VARS = mlepLoadEPResults(OutputFile, 'vars');
+allObjs = {VARS.object};
+allVars = {VARS.name};
+
+LoadVar = findEPResultVar('Whole Building', 'Facility Total Electric Demand Power', allObjs, allVars);
+CLGSETPVar = findEPResultVar('CLGSETP_SCH', 'Schedule Value', allObjs, allVars);
+LIGHTVar = findEPResultVar('BLDG_LIGHT_SCH', 'Schedule Value', allObjs, allVars);
+SATVar = findEPResultVar('Seasonal-Reset-Supply-Air-Temp-Sch', 'Schedule Value', allObjs, allVars);
+
+[VARS, DATA, TS] = mlepLoadEPResults(OutputFile, [LoadVar, CLGSETPVar, LIGHTVar, SATVar]);
 
 figure;
-plot(prices);
-title('Electricity Price');
-xlabel('Time');
+
+subplot(411)
+plot(prices)
 ylabel('Price');
+
+subplot(412)
+plot(DATA(:,1))
+ylabel('Load');
+
+subplot(413)
+plot(DATA(:,[2,4]))
+ylabel('COOL & SAT');
+
+subplot(414)
+plot(DATA(:,3))
+ylabel('LIGHT');
