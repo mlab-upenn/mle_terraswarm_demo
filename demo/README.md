@@ -12,3 +12,11 @@ The example is a reference building provided with EnergyPlus, which is a large h
   - Comment out unnecessary output and report variables
   - Add support for external interface so that it can connect to MLE+, in particular the variable `Output:Variable,Whole Building,Facility Total Electric Demand Power` returns the total electric demand of the system (building and HVAC) in Watts. It was verified that this number matched the value returned by the meter `Output:Meter,Electricity:Facility` (in Joules).
   
+### LargeOffice ###
+
+## Matlab Reference ##
+
+References that are useful for Matlab GUI development of the demo.
+
+- [Improve realtime plotting performance](http://undocumentedmatlab.com/blog/plot-performance)
+- [Rotate X-axis tick labels](http://www.mathworks.com/matlabcentral/fileexchange/27812-rotate-x-axis-tick-labels)
